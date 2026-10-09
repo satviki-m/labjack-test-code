@@ -69,6 +69,8 @@ try:
     # When streaming, negative channels and ranges can be configured for
     # individual analog inputs, but the stream has only one settling time and
     # resolution.
+    ljm.eWriteName(handle, "AIN0_RANGE", 10.0)
+
     if deviceType == ljm.constants.dtT4:
         # T4 configuration
 
@@ -87,6 +89,8 @@ try:
         aNames = ["STREAM_SETTLING_US", "STREAM_RESOLUTION_INDEX"]
         aValues = [0, 0]  # 0 (default), 0 (default)
         ljm.eWriteNames(handle, len(aNames), aNames, aValues)
+
+
     else:
         # LabJack T7 and T8 configuration
 
@@ -99,6 +103,7 @@ try:
         # Stream resolution index is 0 (default).
         aNames = ["AIN_ALL_RANGE", "STREAM_RESOLUTION_INDEX"]
         aValues = [10.0, 0]
+
 
         # Negative channel and settling configurations do not apply to the T8
         if deviceType == ljm.constants.dtT7:
@@ -117,16 +122,23 @@ try:
 
     # Configure and start stream
     scanRate = ljm.eStreamStart(handle, scansPerRead, numAddresses, aScanList, scanRate)
-    print("\nStream started with a scan rate of %0.0f Hz." % scanRate)
+    print("\nStream started with a scan rae of %0.0f Hz." % scanRate)
 
     print("\nPerforming %i stream reads." % MAX_REQUESTS)
     start = datetime.now()
     totScans = 0
     totSkip = 0  # Total skipped samples
 
+    # def rand_solenoid(probability):
+    #     if random.random() < probability:
+    #         ljm.eWriteName(handle, "FIO0", 1)
+
     i = 1
+
     while i <= MAX_REQUESTS:
         ret = ljm.eStreamRead(handle)
+
+        #rand_solenoid(0.2)
 
         aData = ret[0]
         scans = len(aData) / numAddresses
@@ -141,10 +153,14 @@ try:
         print("\neStreamRead %i" % i)
         ainStr = ""
         for j in range(0, numAddresses):
-            ainStr += "%s = %0.5f, " % (aScanListNames[j], aData[j])
+            aData[j] = aData[j]# / 5.9 * 1000 / 51.0
+            a_conversion = aData[j] / 1 * 1000.0 # mA
+             
+            ainStr += "%s = %0.5f, %0.5f " % (aScanListNames[j], aData[j], a_conversion)
         print("  1st scan out of %i: %s" % (scans, ainStr))
         print("  Scans Skipped = %0.0f, Scan Backlogs: Device = %i, LJM = "
               "%i" % (curSkip / numAddresses, ret[1], ret[2]))
+        print(i)
         i += 1
 
     end = datetime.now()

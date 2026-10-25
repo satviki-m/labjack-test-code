@@ -118,6 +118,10 @@ print("Opened a LabJack with Device type: %i, Connection type: %i,\n"
 
 deviceType = info[0]
 
+# Filled in during the stream; used for the final averages.
+aScanListNames = []
+channelData = []
+
 try:
     # When streaming, negative channels and ranges can be configured for
     # individual analog inputs, but the stream has only one settling time and
@@ -270,6 +274,25 @@ except Exception:
 
 # Close handle
 ljm.close(handle)
+
+# Final average of all valid (non-skipped) data points per channel.
+if channelData and any(channelData):
+    print("\nFinal averages over all data points:")
+    for j, name in enumerate(aScanListNames):
+        valid = [v for v in channelData[j] if not math.isnan(v)]
+        if not valid:
+            print("  %s: no valid samples" % name)
+            continue
+        avg = sum(valid) / len(valid)
+        print("  %s = %0.5f V, %0.5f mA  (%i samples)"
+              % (name, avg, avg * 1000.0, len(valid)))
+        if plt.fignum_exists(fig.number):
+            axes[j].axhline(avg, color="#888888", linewidth=1.0,
+                            linestyle="--")
+            axes[j].set_title("%s   avg = %0.5f V" % (name, avg),
+                              fontsize=10, loc="left")
+    if plt.fignum_exists(fig.number):
+        fig.canvas.draw_idle()
 
 # Keep the final plot open until the user closes the window.
 if plt.get_fignums():

@@ -56,6 +56,7 @@ from labjack import ljm
 MAX_REQUESTS = 30  # The number of eStreamRead calls that will be performed.
 FIRST_AIN_CHANNEL = 0  # 0 = AIN0
 NUMBER_OF_AINS = 8
+SHUNT_OHMS = 0.1  # Current sense resistor: current (A) = volts / SHUNT_OHMS
 
 # Fixed-order line colors, one per channel (wraps after 8 channels).
 CHANNEL_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100",
@@ -218,7 +219,7 @@ try:
         ainStr = ""
         for j in range(0, numAddresses):
             aData[j] = aData[j]# / 5.9 * 1000 / 51.0
-            a_conversion = aData[j] / 1 * 1000.0 # mA
+            a_conversion = aData[j] / 1.4 * 1000.0 # mA
              
             ainStr += "%s = %0.5f, %0.5f " % (aScanListNames[j], aData[j], a_conversion)
         print("  1st scan out of %i: %s" % (scans, ainStr))
@@ -283,13 +284,15 @@ if channelData and any(channelData):
         if not valid:
             print("  %s: no valid samples" % name)
             continue
-        avg = sum(valid) / len(valid)
-        print("  %s = %0.5f V, %0.5f mA  (%i samples)"
-              % (name, avg, avg * 1000.0, len(valid)))
+        avg = sum(valid) / len(valid)  # volts
+        avgAmps = avg / SHUNT_OHMS
+        print("  %s = %0.5f V -> %0.6f A, %0.5f mA  (%i samples)"
+              % (name, avg, avgAmps, avgAmps * 1000.0, len(valid)))
         if plt.fignum_exists(fig.number):
             axes[j].axhline(avg, color="#888888", linewidth=1.0,
                             linestyle="--")
-            axes[j].set_title("%s   avg = %0.5f V" % (name, avg),
+            axes[j].set_title("%s   avg = %0.5f V (%0.5f mA)"
+                              % (name, avg, avgAmps * 1000.0),
                               fontsize=10, loc="left")
     if plt.fignum_exists(fig.number):
         fig.canvas.draw_idle()
